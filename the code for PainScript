@@ -1,0 +1,21 @@
+//@version = 5
+strategy("Скользящии", overlay = true, calc_on_order_fills = true, process_orders_on_close = true)
+
+slow = input.int(28, "Slow")
+fast = input.int(14, "Fast")
+
+ma_slow = ta.sma(close, slow)
+ma_fast = ta.sma(close, fast)
+
+plot(ma_slow, 'Slow SMA', color = color.red, linewidth = 4)
+plot(ma_fast, 'Fast SMA', color = color.blue, linewidth = 3)
+
+buy = ta.crossover(ma_fast, ma_slow)
+sell = ta.crossunder(ma_fast, ma_slow)
+
+if buy and strategy.position_size ==0
+	line.new(bar_index, high, bar_index, low, extend = extend.both, color = color.black)
+	strategy.entry("+", strategy.long)
+if sell and strategy.position_size > 0
+	line.new(bar_index, high, bar_index, low, extend = extend.both, color = color.red)
+	strategy.close_all("-")
