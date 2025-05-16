@@ -1,0 +1,123 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+// Структура для хранения данных свечи
+struct Candle {
+    double open;
+    double high;
+    double low;
+    double close;
+    int index;
+};
+
+// Класс для расчета простого скользящего среднего
+class SMA {
+private:
+    int period;
+    vector<double> values;
+public:
+    SMA(int period) : period(period) {}
+
+    double calculate(double price) {
+        values.push_back(price);
+        if (values.size() > period) {
+            values.erase(values.begin());
+        }
+
+        double sum = 0.0;
+        for (double val : values) {
+            sum += val;
+        }
+
+        return sum / values.size();
+    }
+};
+
+// Класс стратегии
+class MovingAverageStrategy {
+private:
+    int slowPeriod;
+    int fastPeriod;
+    SMA maSlow;
+    SMA maFast;
+    double positionSize;
+    vector<Candle> candles;
+
+public:
+    MovingAverageStrategy(int slow, int fast)
+        : slowPeriod(slow), fastPeriod(fast),
+        maSlow(slow), maFast(fast), positionSize(0) {}
+
+    void addCandle(Candle candle) {
+        candles.push_back(candle);
+
+        // Рассчитываем SMA
+        double slowMA = maSlow.calculate(candle.close);
+        double fastMA = maFast.calculate(candle.close);
+
+        // Проверяем условия входа и выхода
+        bool buySignal = checkCrossover(fastMA, slowMA);
+        bool sellSignal = checkCrossunder(fastMA, slowMA);
+
+        // Логика торговли
+        if (buySignal && positionSize == 0) {
+            enterLong(candle.index);
+        }
+        if (sellSignal && positionSize > 0) {
+            closeAll(candle.index);
+        }
+    }
+
+private:
+    bool checkCrossover(double fast, double slow) {
+        if (candles.size() < 2) return false;
+        double prevFast = maFast.calculate(candles[candles.size() - 2].close);
+        double prevSlow = maSlow.calculate(candles[candles.size() - 2].close);
+        return (prevFast <= prevSlow) && (fast > slow);
+    }
+
+    bool checkCrossunder(double fast, double slow) {
+        if (candles.size() < 2) return false;
+        double prevFast = maFast.calculate(candles[candles.size() - 2].close);
+        double prevSlow = maSlow.calculate(candles[candles.size() - 2].close);
+        return (prevFast >= prevSlow) && (fast < slow);
+    }
+
+    void enterLong(int index) {
+        positionSize = 1; 
+        cout << "BUY at candle " << index << endl;
+        drawLine(index, true);
+    }
+
+    void closeAll(int index) {
+        positionSize = 0;
+        cout << "SELL at candle " << index << endl;
+        drawLine(index, false);
+    }
+
+    void drawLine(int index, bool isBuy) {
+        // В реальном приложении здесь была бы отрисовка линии на графике
+        cout << "Drawing " << (isBuy ? "buy" : "sell")
+            << " line at index " << index << endl;
+    }
+};
+
+int main() {
+    // Пример использования
+    MovingAverageStrategy strategy(28, 14);
+
+    // Здесь должен быть код загрузки реальных данных свечей вместо этого создадим тестовые данные
+    vector<Candle> testData = {
+        {100, 105, 99, 102, 0},
+        {102, 108, 101, 106, 1},
+    };
+
+    for (const auto& candle : testData) {
+        strategy.addCandle(candle);
+    }
+
+    return 0;
+}
